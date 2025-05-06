@@ -174,23 +174,39 @@ AlSi_data_ERB <- subset(AlSi_data, Basin == "Eel River", select = c("Al.per.Si",
 ```
 
 ```{r}
+
 source_order = c("Sediment", "Aggregate-attached","Aggregate-attached, Sediment-free")
 basin_order = c("Eel River", "Jaco Scar", "Santa Monica")
 AlSi_data = AlSi_data |> 
   mutate(Source = factor(Source, levels = source_order),
          Basin = factor(Basin, levels = basin_order))
+
 ```
 
 
 ```{r}
 
-#Make violin plot
-ggplot(AlSi_data, aes(Source, Al.per.Si)) +
-  geom_violin() +
+#Make violin plots
+
+ot = ggplot(AlSi_data, aes(Source, Al.per.Si))
+
+ot + 
+  geom_violin() + 
   geom_boxplot(width=0.2, outliers = FALSE) +
+  stat_compare_means(method = "aov", label = "p", size = 3) +
+  stat_compare_means(method = 't.test', label.y = 1,
+                     ref.group = "Sediment", label = "p.signif") +
+ # stat_compare_means(method = "t.test",
+#                     comparisons = list(
+#                       c("Sediment", "Aggregate-attached"),
+#                       c("Aggregate-attached, Sediment-free", "Aggregate-attached"),
+#                       c("Sediment", "Aggregate-attached, Sediment-free")
+ #                    )) +
+  # geom_jitter(width = 0.1)
   facet_grid(~Basin, scales = "free", space = "free") +
   theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)) +
-  labs(x = "", y = "Al per Si")
+  labs(x = "", y = "(Al per Si")
+
 ```
 
 ```{r}
