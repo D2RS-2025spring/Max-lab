@@ -12,32 +12,59 @@ output: html_document
 ## 论文研究概述
 
 ## 数据准备
-
-论文的原始数据及分析代码都在 [GitHub](https://github.com/daniosro/Si_biomineralization_ANME_SRB.git) 上。首先，使用 Git 命令将代码克隆到本地：
-
+# 从GitHub克隆原始数据和代码到本地
+# 使用--depth=1参数只克隆最新版本，不包含历史记录
 ```bash
 git clone https://github.com/daniosro/Si_biomineralization_ANME_SRB.git --depth 1
 
-#| label: packages 
+# 加载必要的R包：
+# - readxl：专门用于读取Excel文件，比常规方法更稳定
+# - tidyverse：包含ggplot2(绘图)、dplyr(数据处理)等核心包
+# 注意：使用library()而不是require()确保加载失败时报错
 library(readxl)       # 用于读取Excel文件
 library(tidyverse)    # 包含ggplot2、dplyr等数据科学工具包
 
-# 设置默认主题为黑白主题
+# 设置ggplot2默认主题为黑白主题(theme_bw)
+# 影响后续所有ggplot图形的外观：
+# - 白色背景
+# - 灰色网格线  
+# - 更学术化的呈现风格
 theme_set(theme_bw())
 
 # 读取数据集S3.xlsx文件，包含(Mg+Al+Fe)/Si比值数据
 # 数据包括无沉积物的ANME-SRB联合体、沉积物中的ANME-SRB联合体以及不含ANME-SRB联合体的沉积物
+# 使用xfun包的magic_path智能定位文件路径
+# 优点：避免硬编码路径，增强代码可移植性
 file = xfun::magic_path("Dataset S3.xlsx")  # 自动查找文件路径
+
+# 读取Excel数据：
+# - 自动识别列类型
+# - 保留原始列名
+# - 存储在octtet_data数据框中
 octtet_data <- read_excel(file)  # 读取Excel文件
 
-octtet_data  # 显示数据
+# 打印数据框结构：
+# - 检查列名是否正确
+# - 查看前几行数据
+# - 确认数据类型
+octtet_data 
 
 # 按类别筛选数据
+# 使用dplyr管道操作(%>%)进行数据清洗：
 # 1. 从Jaco Scar获取的沉积物和ANME-SRB联合体附着的硅酸盐
 octtet_data_Jaco <- octtet_data |> 
-  filter(Basin == "Jaco Scar") |>  # 筛选Jaco Scar盆地的数据
-  select(mg_al_fe_to_si, Source, Basin, source_order, basin_order) |>  # 选择特定列
-  mutate(Source = as_factor(Source))  # 将Source列转换为因子
+  filter(Basin == "Jaco Scar") |>  # 筛选特定盆地
+  select( # 选择需要的列：
+    mg_al_fe_to_si,  # (Mg+Al+Fe)/Si比值
+    Source,          # 样品来源
+    Basin,           # 盆地名称
+    source_order,    # 来源排序指标
+    basin_order      # 盆地排序指标
+  ) |>  
+  mutate(Source = as_factor(Source))  # 将来源转为因子，便于分组分析
+
+# Case 2-6: 其他盆地的类似处理
+# (代码结构相同，仅筛选条件不同)
 
 # 2. 从Santa Monica盆地获取的沉积物和ANME-SRB联合体附着的硅酸盐
 octtet_data_SMB <- subset(octtet_data, Basin == "Santa Monica", 
@@ -63,9 +90,20 @@ octtet_data_ERB <- subset(octtet_data, Basin == "Eel River",
                           select = c("mg_al_fe_to_si","Source","Basin","source_order","basin_order"))
 
 # 对Jaco Scar沉积物和ANME-SRB联合体附着的硅酸盐进行单因素方差分析
-summary(octtet_data_Jaco)  # 显示数据摘要
+# 使用aov()进行单因素方差分析：
+# 模型公式：mg_al_fe_to_si ~ Source
+# 即检验不同来源样品的元素比值是否存在显著差异
 resot1.aov <- aov(mg_al_fe_to_si ~ Source, data = octtet_data_Jaco)  # 执行ANOVA
-summary(resot1.aov)  # 显示ANOVA结果
+
+# 结果摘要输出：
+# - Df: 自由度
+# - Sum Sq: 平方和
+# - Mean Sq: 均方
+# - F value: F统计量
+# - Pr(>F): p值
+summary(resot1.aov)
+
+# 对其他分组重复相同分析流程
 
 # 对Santa Monica盆地培养实验中无沉积物的ANME-SRB联合体附着的富含硅相进行单因素方差分析
 resot2.aov <- aov(mg_al_fe_to_si ~ Source, data = octtet_data_SMB_sedfree)
@@ -83,87 +121,342 @@ summary(resot4.aov)
 resot5.aov <- aov(mg_al_fe_to_si ~ Source, data = octtet_data_ERB)
 summary(resot5.aov)
 
-library(ggpubr)  # 加载ggpubr包用于统计可视化
+# 加载ggpubr包用于统计可视化
+# 提供专业出版级图形功能
+library(ggpubr)  
 
-# 重新组织数据
-octtet_data$new_source_order <- reorder(octtet_data$Source, octtet_data$source_order)  # 按source_order重新排序Source
-octtet_data$new_basin_order <- reorder(octtet_data$Basin, octtet_data$basin_order)  # 按basin_order重新排序Basin
+# 数据重组：
+# - 按原始定义的顺序重新排列因子水平
+# - 确保图表中分组显示顺序正确
+octtet_data <- octtet_data |> 
+  mutate(
+    new_source_order = reorder(Source, source_order),
+    new_basin_order = reorder(Basin, basin_order)
+  )
 
 # 创建小提琴图
+# 构建ggplot图形对象：
+# - x轴：样品来源(按预定顺序)
+# - y轴：(Mg+Al+Fe)/Si比值
 ot = ggplot(octtet_data, aes(new_source_order, mg_al_fe_to_si))  # 设置基础图形
 
+# 图形叠加和美化
 ot + 
   geom_violin() +  # 添加小提琴图
   geom_boxplot(width=0.2, outliers = FALSE) +  # 添加窄箱线图，不显示异常值
+  
+  # 统计标注：
   stat_compare_means(method = "aov", label = "p", size = 3) +  # 添加ANOVA p值
-  stat_compare_means(method = 't.test', label.y = 2,
-                     ref.group = "Sediment", label = "p.signif") +  # 添加与Sediment组的t检验显著性标记
+  stat_compare_means(
+    method = 't.test', 
+    ref.group = "Sediment",  # 以沉积物组为参照
+    label = "p.signif",      # 显示*号标记显著性
+    label.y = 2             # 标注位置调整
+  ) +
+  
+   # 分面显示：
   facet_grid(~new_basin_order, scales = "free", space = "free") +  # 按盆地分面，自由调整比例和空间
+  # 分面显示：
   theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)) +  # 调整x轴标签角度
   labs(x = "", y = "(Mg+Al+Fe)/Si")  # 设置轴标签
 
-# 读取数据集S2.xlsx文件，包含Al/Si比值数据
+# 读取Dataset S2.xlsx文件
+# 使用xfun::magic_path()自动定位文件路径，避免绝对路径依赖
 AlSi_data <- read_excel(xfun::magic_path('Dataset S2.xlsx'))
-AlSi_data
 
-# 按类别筛选数据
-# 1. Jaco Scar的沉积物和ANME-SRB联合体附着的硅酸盐
-AlSi_data_Jaco <- subset(AlSi_data, Basin == "Jaco Scar", 
-                        select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 2. Santa Monica盆地的沉积物和ANME-SRB联合体附着的硅酸盐
-AlSi_data_SMB <- subset(AlSi_data, Basin == "Santa Monica", 
-                        select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 3. Santa Monica盆地培养实验中无沉积物的ANME-SRB联合体附着的富含硅相
-AlSi_data_SMB_sedfree <- subset(AlSi_data_SMB,
-                               Source == "Aggregate-attached, Sediment-free" | Source == "Sediment", 
-                               select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 4. Santa Monica盆地沉积物中ANME-SRB联合体附着的硅酸盐
-AlSi_data_SMB_fromsed <- subset(AlSi_data_SMB,
-                               Source == "Aggregate-attached" | Source == "Sediment", 
-                               select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 5. Santa Monica盆地沉积物中ANME-SRB联合体附着的硅酸盐与培养实验中无沉积物的ANME-SRB联合体附着的富含硅相
-AlSi_data_SMB_freevsfromsed<- subset(AlSi_data_SMB,
-                                    Source == "Aggregate-attached" | Source == "Aggregate-attached, Sediment-free", 
-                                    select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 6. Eel River盆地的沉积物和ANME-SRB联合体附着的硅酸盐
-AlSi_data_ERB <- subset(AlSi_data, Basin == "Eel River", 
-                        select = c("Al.per.Si","Source","Basin","Source order","Basin order"))
-# 设置因子顺序
-source_order = c("Sediment", "Aggregate-attached","Aggregate-attached, Sediment-free")
-basin_order = c("Eel River", "Jaco Scar", "Santa Monica")
-AlSi_data = AlSi_data |> 
-  mutate(Source = factor(Source, levels = source_order),  # 按指定顺序设置Source因子
-         Basin = factor(Basin, levels = basin_order))  # 按指定顺序设置Basin因子
+# 显示数据结构
+# 确认包含的列：Al.per.Si比值、样品来源(Source)、盆地(Basin)等
+head(AlSi_data)
+str(AlSi_data)  # 检查各列数据类型
+
+# 定义科学合理的显示顺序：
+# 样品来源顺序：从沉积物到无沉积物的共生体
+source_order <- c(
+  "Sediment",                      # 基准沉积物组
+  "Aggregate-attached",            # 沉积物中ANME-SRB附着组
+  "Aggregate-attached, Sediment-free" # 无沉积物培养组
+)
+
+# 盆地地理顺序：从北到南排列
+basin_order <- c(
+  "Eel River",     # 最北端
+  "Jaco Scar",     # 中美洲
+  "Santa Monica"   # 最南端
+)
+
+# 转换因子并固定水平顺序
+AlSi_data <- AlSi_data |> 
+  mutate(
+    Source = factor(Source, 
+                   levels = source_order,
+                   labels = c("Sediment", "Attached-in-sed", "Attached-sed-free")),  # 简化标签
+    Basin = factor(Basin, 
+                  levels = basin_order,
+                  labels = c("Eel River", "Jaco Scar", "Santa Monica"))  # 标准化盆地名称
+  )
+
+# 检查因子水平设置
+levels(AlSi_data$Source)
+levels(AlSi_data$Basin)
+
+# 分组1：Jaco Scar盆地全部数据
+AlSi_Jaco <- AlSi_data |> 
+  filter(Basin == "Jaco Scar") |> 
+  select(Al.per.Si, Source, Basin)
+
+# 分组2：Santa Monica盆地沉积物vs无沉积物培养
+AlSi_SMB_sedfree <- AlSi_data |> 
+  filter(Basin == "Santa Monica",
+         Source %in% c("Attached-sed-free", "Sediment"))
+
+# 分组3：Santa Monica盆地沉积物中附着组
+AlSi_SMB_fromsed <- AlSi_data |> 
+  filter(Basin == "Santa Monica",
+         Source %in% c("Attached-in-sed", "Sediment"))
+
+# 分组4：跨沉积环境的附着组比较
+AlSi_SMB_cross <- AlSi_data |> 
+  filter(Basin == "Santa Monica",
+         Source %in% c("Attached-in-sed", "Attached-sed-free"))
+
+# 分组5：Eel River盆地数据
+AlSi_ERB <- AlSi_data |> 
+  filter(Basin == "Eel River")
+
+#' 执行单因素方差分析(ANOVA)并返回格式化结果
+#' 
+#' @param data 数据框，必须包含Al.per.Si(因变量)和Source(分组变量)
+#' @return 返回一个tibble格式的ANOVA结果表，包含：
+#'   - term: 方差来源（分组变量）
+#'   - df: 自由度
+#'   - sumsq: 平方和
+#'   - meansq: 均方
+#'   - statistic: F统计量
+#'   - p.value: 显著性p值
+#' @examples 
+#' run_anova(AlSi_Jaco)  # 对Jaco Scar数据执行ANOVA
+run_anova <- function(data) {
+  # 模型构建：Al/Si比值按样品来源分组比较
+  model <- aov(Al.per.Si ~ Source, data = data)
+  
+  # 使用broom包整理结果，得到标准结构化输出
+  tidy_result <- broom::tidy(model)
+  
+  # 添加效应量指标（Eta-squared）
+  tidy_result <- tidy_result %>%
+    mutate(
+      eta.sq = sumsq / sum(sumsq),  # 计算η²（解释方差比例）
+      sig = ifelse(p.value < 0.001, "***",
+                  ifelse(p.value < 0.01, "**",
+                         ifelse(p.value < 0.05, "*", "ns")))  # 添加显著性标记
+    )
+  
+  return(tidy_result)
+}
+
+# 对预设的五个分组分别执行ANOVA分析
+# 使用命名列表存储结果，便于后续引用
+results_list <- list(
+  "1_Jaco_Scar" = run_anova(AlSi_Jaco),          # Jaco Scar盆地全部分组
+  "2_SMB_Sediment_vs_Free" = run_anova(AlSi_SMB_sedfree),  # SMB沉积物vs无沉积物培养
+  "3_SMB_Sediment_vs_Attached" = run_anova(AlSi_SMB_fromsed), # SMB沉积物vs沉积物中附着组
+  "4_SMB_Cross_Attachment" = run_anova(AlSi_SMB_cross),    # SMB跨环境附着组比较
+  "5_ERB" = run_anova(AlSi_ERB)                  # Eel River盆地数据
+)
+
+# 美化输出函数
+print_anova_results <- function(results) {
+  cat("\n=== ANOVA结果汇总 ===\n")
+  for (i in seq_along(results)) {
+    cat("\n◆ 分析组别:", names(results)[i], "\n")
+    
+    # 提取当前结果
+    res <- results[[i]]
+    
+    # 打印统计表
+    print(res %>% select(-sig) %>% 
+            mutate(across(where(is.numeric), ~round(., 3))))
+    
+    # 结果解读
+    cat("\n科学解释:\n")
+    if (res$p.value[1] < 0.05) {
+      cat(sprintf(
+        "-> 组间存在显著差异(p=%.3f, η²=%.2f)，说明样品来源显著影响Al/Si比值\n",
+        res$p.value[1], res$eta.sq[1]
+      ))
+    } else {
+      cat(sprintf(
+        "-> 组间无显著差异(p=%.3f)，样品来源不影响Al/Si比值\n",
+        res$p.value[1]
+      ))
+    }
+    cat(strrep("-", 40), "\n")
+  }
+}
+
+# 执行输出
+print_anova_results(results_list)
+
+# 补充输出建议
+cat("\n后续分析建议:\n",
+    "1. 对显著结果可进行Tukey HSD事后检验\n",
+    "2. 检查方差齐性(建议car::leveneTest)\n",
+    "3. 可视化各组均值与置信区间\n")
 
 # 创建Al/Si比值的小提琴图
-ot = ggplot(AlSi_data, aes(Source, Al.per.Si))  # 设置基础图形
+#' 创建Al/Si比值专业可视化图形
+#' @param data 输入数据框，必须包含Source和Al.per.Si列
+#' @return 返回ggplot2对象
+create_AlSi_plot <- function(data) {
+  
+  # 基础图形构建
+  p <- ggplot(data, aes(x = Source, 
+                       y = Al.per.Si, 
+                       fill = Source)) +  # 按来源填充颜色
+    
+    # 1. 小提琴图：展示数据分布密度
+    geom_violin(
+      alpha = 0.6,       # 透明度60%
+      trim = FALSE,       # 不修剪尾部
+      scale = "width",    # 统一宽度
+      width = 0.8,        # 控制最大宽度
+      color = NA          # 无边框线
+    ) +
+    
+    # 2. 箱线图：展示四分位数
+    geom_boxplot(
+      width = 0.15,       # 窄箱线宽度
+      outlier.shape = NA,  # 不显示异常值(已用抖动点展示)
+      alpha = 0.8,         # 透明度
+      coef = 1.5           # 箱线图触须范围(IQR倍数)
+    ) +
+    
+    # 3. 抖动点：显示原始数据分布
+    geom_jitter(
+      width = 0.1,        # 水平抖动范围
+      height = 0,         # 垂直不抖动
+      size = 2,           # 点大小
+      alpha = 0.5,        # 透明度
+      shape = 21,         # 带填充的点形
+      color = "white"     # 点边框颜色
+    ) +
+    
+    # 4. 统计标注
+    # 4.1 整体ANOVA检验
+    stat_compare_means(
+      method = "anova",
+      label.x = 1.5,      # 标签水平位置
+      label.y = max(data$Al.per.Si, na.rm = TRUE) * 1.15,  # 垂直位置
+      size = 4,           # 字体大小
+      label = "p.format"  # 显示格式"p=0.012"
+    ) +
+    
+    # 4.2 组间两两比较
+    stat_compare_means(
+      method = "t.test",
+      comparisons = list(
+        c("Sediment", "Attached-in-sed"),
+        c("Sediment", "Attached-sed-free"),
+        c("Attached-in-sed", "Attached-sed-free")
+      ),
+      label = "p.signif", # 显示显著性符号(*)
+      step.increase = 0.1, # 避免标签重叠
+      tip.length = 0.01    # 指示线长度
+    ) +
+    
+    # 5. 颜色与主题设置
+    scale_fill_brewer(
+      palette = "Set2",    # 色盲友好配色
+      name = "Sample Type" # 图例标题
+    ) +
+    scale_y_continuous(
+      limits = c(0, max(data$Al.per.Si, na.rm = TRUE) * 1.2,  # 扩展y轴范围
+      breaks = pretty_breaks(n = 5)  # 自动生成5个刻度
+    ) +
+    
+    # 6. 标签与标题
+    labs(
+      x = "Sample Type",
+      y = "Al/Si Ratio (atomic %)",
+      title = "Aluminum to Silicon Ratio Distribution",
+      subtitle = "Violin plots with boxplots and individual data points",
+      caption = "p-values from one-way ANOVA; *p<0.05, **p<0.01, ***p<0.001"
+    ) +
+    
+    # 7. 主题调整
+    theme_minimal(base_size = 12) +
+    theme(
+      legend.position = "none",          # 隐藏图例
+      axis.text.x = element_text(        # x轴标签
+        angle = 45, 
+        hjust = 1,
+        vjust = 1,
+        face = "bold"
+      ),
+      panel.grid.major.x = element_blank(),  # 隐藏x轴网格线
+      plot.title = element_text(         # 标题格式
+        size = 14, 
+        face = "bold",
+        hjust = 0.5
+      ),
+      plot.subtitle = element_text(      # 副标题格式
+        size = 10,
+        hjust = 0.5
+      )
+    )
+  
+  return(p)
+}
 
-ot + 
-  geom_violin() +  # 添加小提琴图
-  geom_boxplot(width=0.2, outliers = FALSE) +  # 添加窄箱线图，不显示异常值
-  stat_compare_means(method = "aov", label = "p", size = 3) +  # 添加ANOVA p值
-  stat_compare_means(method = 't.test', label.y = 1,
-                     ref.group = "Sediment", label = "p.signif") +  # 添加与Sediment组的t检验显著性标记
-  facet_grid(~Basin, scales = "free", space = "free") +  # 按盆地分面，自由调整比例和空间
-  theme(axis.text.x = element_text(angle = 30, hjust = 1, vjust = 1)) +  # 调整x轴标签角度
-  labs(x = "", y = "(Al per Si")  # 设置轴标签
+# 分盆地绘图（添加盆地特异性设置）
+plot_Jaco <- create_AlSi_plot(AlSi_Jaco) + 
+  ggtitle("Jaco Scar Basin") +
+  theme(plot.margin = margin(10, 5, 10, 5))  # 调整边距
 
- # 对Jaco Scar沉积物和ANME-SRB联合体附着的硅酸盐进行单因素方差分析(Al/Si比值)
-resot6.aov <- aov(Al.per.Si ~ Source, data = AlSi_data_Jaco)
-summary(resot6.aov)
+plot_SMB <- create_AlSi_plot(
+  AlSi_data %>% filter(Basin == "Santa Monica")
+) + 
+  ggtitle("Santa Monica Basin") +
+  scale_y_continuous(limits = c(0, 1.5))  # 自定义y轴范围
 
-# 对Santa Monica盆地培养实验中无沉积物的ANME-SRB联合体附着的富含硅相进行单因素方差分析(Al/Si比值)
-resot7.aov <- aov(Al.per.Si ~ Source, data = AlSi_data_SMB_sedfree)
-summary(resot7.aov)
+plot_ERB <- create_AlSi_plot(AlSi_ERB) + 
+  ggtitle("Eel River Basin") +
+  labs(caption = NULL)  # 隐藏重复的注释
 
-# 对Santa Monica盆地沉积物中ANME-SRB联合体附着的硅酸盐进行单因素方差分析(Al/Si比值)
-resot8.aov <- aov(Al.per.Si ~ Source, data = AlSi_data_SMB_fromsed)
-summary(resot8.aov)
+# 专业拼图设置
+combined_plot <- (plot_Jaco | plot_SMB | plot_ERB) +  # 水平排列
+  plot_layout(
+    guides = 'collect',    # 统一图例
+    widths = c(1, 1.2, 1) # 调整子图宽度比例
+  ) & 
+  theme(legend.position = 'bottom') +  # 全局图例位置
+  
+  # 添加整体标注
+  plot_annotation(
+    title = "Comparative Analysis of Al/Si Ratios Across Hydrothermal Basins",
+    subtitle = "Showing sediment vs. microbial mat-associated silicate compositions",
+    tag_levels = 'A',      # 子图标记(A,B,C)
+    tag_prefix = "Fig. ",  # 标记前缀
+    tag_suffix = ")",      # 标记后缀
+    theme = theme(
+      plot.title = element_text(size = 16, face = "bold"),
+      plot.subtitle = element_text(size = 12)
+    )
+  )
 
-# 对Santa Monica盆地沉积物中ANME-SRB联合体附着的硅酸盐与培养实验中无沉积物的ANME-SRB联合体附着的富含硅相进行单因素方差分析(Al/Si比值)
-resot9.aov <- aov(Al.per.Si ~ Source, data = AlSi_data_SMB_freevsfromsed)
-summary(resot9.aov)
+ggsave(
+  filename = "AlSi_ratio_analysis.tiff",  # 推荐TIFF格式投稿用
+  plot = combined_plot,
+  width = 16,                    # 宽度(英寸)
+  height = 7,                    # 高度
+  units = "in",                  # 单位
+  dpi = 600,                     # 印刷级分辨率
+  compression = "lzw",           # TIFF压缩算法
+  bg = "white"                   # 背景色
+)
 
-# 对Eel River盆地的沉积物和ANME-SRB联合体附着的硅酸盐进行单因素方差分析(Al/Si比值)
-resot10.aov <- aov(Al.per.Si ~ Source, data = AlSi_data_ERB)
-summary(resot10.aov)
+# 同时保存PDF版本（矢量图）
+ggsave("AlSi_ratio_analysis.pdf", 
+       combined_plot,
+       width = 16, height = 7,
+       device = cairo_pdf)  # 支持特殊字体
