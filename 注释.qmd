@@ -12,8 +12,9 @@ output: html_document
 ## 论文研究概述
 
 ## 数据准备
-# 从GitHub克隆原始数据和代码到本地
-# 使用--depth=1参数只克隆最新版本，不包含历史记录
+
+论文的原始数据及分析代码都在 [GitHub](https://github.com/daniosro/Si_biomineralization_ANME_SRB.git) 上。首先，使用 Git 命令将代码克隆到本地：
+
 ```bash
 git clone https://github.com/daniosro/Si_biomineralization_ANME_SRB.git --depth 1
 
@@ -21,14 +22,13 @@ git clone https://github.com/daniosro/Si_biomineralization_ANME_SRB.git --depth 
 # - readxl：专门用于读取Excel文件，比常规方法更稳定
 # - tidyverse：包含ggplot2(绘图)、dplyr(数据处理)等核心包
 # 注意：使用library()而不是require()确保加载失败时报错
+
 library(readxl)       # 用于读取Excel文件
 library(tidyverse)    # 包含ggplot2、dplyr等数据科学工具包
 
 # 设置ggplot2默认主题为黑白主题(theme_bw)
 # 影响后续所有ggplot图形的外观：
-# - 白色背景
-# - 灰色网格线  
-# - 更学术化的呈现风格
+
 theme_set(theme_bw())
 
 # 读取数据集S3.xlsx文件，包含(Mg+Al+Fe)/Si比值数据
@@ -38,9 +38,10 @@ theme_set(theme_bw())
 file = xfun::magic_path("Dataset S3.xlsx")  # 自动查找文件路径
 
 # 读取Excel数据：
-# - 自动识别列类型
-# - 保留原始列名
-# - 存储在octtet_data数据框中
+# 自动识别列类型
+# 保留原始列名
+# 存储在octtet_data数据框中
+
 octtet_data <- read_excel(file)  # 读取Excel文件
 
 # 打印数据框结构：
