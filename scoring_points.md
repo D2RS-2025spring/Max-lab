@@ -6,14 +6,14 @@
 
 ### 1.1 数据加载规范性
 
-# 自适应路径处理（兼容不同操作系统）
+#### 自适应路径处理（兼容不同操作系统）
 file <- xfun::magic_path("Dataset S3.xlsx")
 
-# 数据加载与验证
+#### 数据加载与验证
 octtet_data <- read_excel(file)
 print(dim(octtet_data))  # 输出: [1] 425   5
 
-# 得分点：
+#### 得分点：
 
 ✅ 使用xfun::magic_path实现跨平台路径兼容，确保代码在不同操作系统上均可正确运行
  
