@@ -56,9 +56,9 @@ git clone https://github.com/daniosro/Si_biomineralization_ANME_SRB.git --depth 
 ```
 
 # 加载必要的R包：
-# - readxl：专门用于读取Excel文件，比常规方法更稳定
-# - tidyverse：包含ggplot2(绘图)、dplyr(数据处理)等核心包
-# 注意：使用library()而不是require()确保加载失败时报错
+readxl：专门用于读取Excel文件，比常规方法更稳定
+tidyverse：包含ggplot2(绘图)、dplyr(数据处理)等核心包
+注意：使用library()而不是require()确保加载失败时报错
 ```{r}
 
 #| label: packages
@@ -67,10 +67,9 @@ library(tidyverse)    # 包含ggplot2、dplyr等数据科学工具包
 
 ```
 
+```{r}
 # 设置ggplot2默认主题为黑白主题(theme_bw)
 # 影响后续所有ggplot图形的外观：
-```{r}
-
 theme_set(theme_bw())
 
 ```
@@ -298,7 +297,7 @@ ot +
 # 调整x轴标签的角度，使其更易读；并可以添加散点抖动图层来展示原始数据点。
 ```
 
-# 对不同数据集（不同来源的硅酸盐数据）进行单因素方差分析（One-way ANOVA），每个数据集都对应特定的地理区域和样本来源，用于比较不同来源（Source）对铝与硅的比值（Al.per.Si）的影响。
+对不同数据集（不同来源的硅酸盐数据）进行单因素方差分析（One-way ANOVA），每个数据集都对应特定的地理区域和样本来源，用于比较不同来源（Source）对铝与硅的比值（Al.per.Si）的影响。
 
 ```{r}
 # 对来自Jaco的沉积物和附着在ANME-SRB 共生体上的硅酸盐进行单因素方差分析（One-way ANOVA）测试
