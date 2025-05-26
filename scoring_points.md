@@ -1,6 +1,40 @@
 # 小组成员贡献与得分点解析
 
 ------
+# 项目得分点分析
+
+## 一、课堂教授内容
+
+### 1、文学化编程：
+
+#### 1.1 使用了 R Markdown
+
+#### 1.2 使用R Studio运行代码，对代码进行复现、修改
+
+#### 1.3 小组成员使用 Pull requests对自己所做内容进行提交
+
+#### 1.4 使用了git对仓库内容进行拉取和提交
+
+## 二、问题及解决思路
+
+### 1、问题：
+
+#### 如何复现一组数据的小提琴箱线图？
+
+### 2、解决思路
+
+#### 1.1 找到数据并且在GitHub寻找开源代码
+
+#### 1.2 下载数据并且导入R Studio对其进行整理和复现
+
+#### 1.3 对其进行注释和试运行
+
+#### 1.4 在另外电脑再进行试运行，观察复现是否成功
+
+#### 1.5 得到试运行结果并且通过GitHub提交到仓库
+
+
+# 代码得分点分析
 
 ## 一、数据处理与清洗
 
@@ -22,17 +56,17 @@ print(dim(octtet_data))  # 输出: [1] 425   5
 ✅ 标准化数据读取流程，提升代码可复用性与可维护性
 ### 1.2 数据筛选严谨性
 
-# 分层筛选逻辑（Jaco Scar数据）
+#### 分层筛选逻辑（Jaco Scar数据）
 octtet_data_Jaco <- octtet_data |> 
   filter(Basin == "Jaco Scar") |> 
   select(mg_al_fe_to_si, Source, Basin) |> 
   mutate(Source = as_factor(Source))
 
-# 特殊样本组处理（无沉积培养）
+#### 特殊样本组处理（无沉积培养）
 octtet_data_SMB_sedfree <- octtet_data_SMB |> 
   filter(Source %in% c("Aggregate-attached, Sediment-free", "Sediment"))
 
-# 得分点：
+#### 得分点：
 
 ✅ 管道操作符(|>)提升代码可读性，使数据处理流程更加直观清晰
 
@@ -44,16 +78,16 @@ octtet_data_SMB_sedfree <- octtet_data_SMB |>
 
 ### 2.1 ANOVA分析
 
-# Jaco Scar区域分析
+#### Jaco Scar区域分析
 resot1.aov <- aov(mg_al_fe_to_si ~ Source, data = octtet_data_Jaco)
 summary(resot1.aov)
 
-# 输出结果
+#### 输出结果
              Df Sum Sq Mean Sq F value   Pr(>F)    
 Source        1  2.242   2.242   34.29 5.95e-08 
 Residuals   101  6.602   0.065
 
-# 得分点：
+#### 得分点：
 
 ✅ 正确构建单因素方差分析模型，合理设置因变量与自变量
 
@@ -63,14 +97,14 @@ Residuals   101  6.602   0.065
 
 ### 2.2 跨区域验证
 
-# 三大盆地统一分析方法
+#### 三大盆地统一分析方法
 basins <- c("Jaco Scar", "Santa Monica", "Eel River")
 results <- lapply(basins, function(b){
   data <- filter(octtet_data, Basin == b)
   aov(mg_al_fe_to_si ~ Source, data = data)
 })
 
-# 得分点：
+#### 得分点：
 
 ✅ 使用 lapply 实现自动化批量分析，避免重复代码书写，提升效率
 
@@ -95,7 +129,7 @@ ggplot(octtet_data, aes(new_source_order, mg_al_fe_to_si)) +
   ) +
   facet_wrap(~new_basin_order, scales = "free_x")
 
-# 图表特征分析：
+#### 图表特征分析：
 
 ✅ 小提琴图展示数据分布，清晰呈现数据的集中趋势与离散程度
 
