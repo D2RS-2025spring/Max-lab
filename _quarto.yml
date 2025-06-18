@@ -1,0 +1,18 @@
+project:
+  type: book
+
+book:
+  title: "Max-lab"
+  date: now
+  chapters:
+    - index.md
+    - analysis.qmd
+    - "Data reproduction.qmd"
+    - scoring_points.md
+
+
+format:
+  html:
+    theme: cosmo
+
+
